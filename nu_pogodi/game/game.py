@@ -1,10 +1,11 @@
-import os
+# coding=utf-8
 import random
 import time
 
 import cv2
 
-from nu_pogodi import utils
+from nu_pogodi.game.player import Player
+from nu_pogodi.images import read_image
 
 
 class EggIsAlreadyAdded(Exception):
@@ -35,55 +36,7 @@ class EggHill(object):
         self.positions.pop(-1)
 
 
-# class Hand(object):
-#     def __init__(self):
-#         self._prev_position = None
-#         self.position =
-
-
-class Player(object):
-    def __init__(self):
-        self.left_hand_position = None
-        self.right_hand_position = None
-
-        self._prev_gray = None
-
-    def update(self, img):
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        if self._prev_gray is None:
-            self._prev_gray = gray
-            return
-
-        flow = cv2.calcOpticalFlowFarneback(
-            self._prev_gray, gray, None, 0.5, 3, 15, 3, 5, 1.2, 0)
-        self._prev_gray = gray
-        mv_channel = utils.get_moves_channel(flow)
-
-        contours = list(utils.iter_outer_contours(mv_channel, min_area=1000 ))
-        if contours:
-            _, left_hand_candidate = max(
-                ((c, max(c, key=utils.get_point_y)) for c in contours),
-                key=lambda x: utils.get_point_y(x[1])
-            )
-            _, right_hand_candidate = min(
-                ((c, min(c, key=utils.get_point_y)) for c in contours),
-                key=lambda x: utils.get_point_y(x[1])
-            )
-
-            self.left_hand_position = tuple(*left_hand_candidate)
-            self.right_hand_position = tuple(*right_hand_candidate)
-
-    def can_catch(self, position):
-        return any(utils.get_points_distance(h, position) < 20
-                   for h in (self.left_hand_position,
-                             self.right_hand_position))
-
-
 class Game(object):
-    IMAGES_DIR = os.path.join(
-        os.path.dirname(__file__),
-        'images'
-    )
     EGG_COLOR = (70, 70, 70)
 
     class GetPositionsFunc:
@@ -115,7 +68,7 @@ class Game(object):
     }
 
     def __init__(self):
-        self._bg = self._get_image('field.jpg')
+        self._bg = read_image('field.jpg')
         self._last_hill_update = 0
         self.egg_hills = {
             k: EggHill()
@@ -178,8 +131,6 @@ class Game(object):
             if hill.egg_on_position(pos):
                 cv2.circle(img, position_point, 12, self.EGG_COLOR, 4)
 
-    def _get_image(self, file_name):
-        return cv2.imread(os.path.join(self.IMAGES_DIR, file_name))
 
     def _show_player_hands(self, game_frame):
         if self._player.left_hand_position is not None:
