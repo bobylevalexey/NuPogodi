@@ -50,7 +50,7 @@ def smooth_image(image, smooth_param):
     return cv2.blur(image, (10, 10))
 
 
-def iter_outer_contours(channel, min_area=0):
+def iter_outer_contours(channel, min_area=None):
     _, contours, heirs = cv2.findContours(
         channel, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     try:
@@ -59,8 +59,9 @@ def iter_outer_contours(channel, min_area=0):
         heirs = []
 
     for cnt, heir in zip(contours, heirs):
-        if cv2.contourArea(cnt) < min_area:
-            continue
+        if min_area is not None:
+            if cv2.contourArea(cnt) < min_area:
+                continue
         _, _, _, outer_i = heir
         if outer_i < 0:
             yield cnt
@@ -114,10 +115,10 @@ def show_most_right_contour(image, contours, color=(0, 0, 255)):
     return image
 
 
-def get_moves_channel(flow):
+def get_moves_channel(flow, mv_param=1):
     fx, fy = flow[:,:,0], flow[:,:,1]
     moves = np.sqrt(fx*fx+fy*fy).astype(np.uint8)
-    fr = threshold_frame(moves, param=1)
+    fr = threshold_frame(moves, param=mv_param)
     return fr
 
 
@@ -131,3 +132,19 @@ def threshold_frame(frame, param=127):
 
 def get_points_distance(p1, p2):
     return math.sqrt(sum((p1[i] - p2[i]) ** 2 for i in xrange(2)))
+
+
+def insert_picture(frame, pic, offset):
+    x_offset, y_offset = offset
+    pic_h, pic_w = pic.shape[:2]
+    pic_alpha_channel = pic[:, :, 3]
+
+    for channel in range(3):
+        old_frame_area = frame[y_offset: y_offset + pic_h,
+                               x_offset: x_offset + pic_w,
+                               channel]
+        new_frame_area = pic[:, :, channel] * (pic_alpha_channel / 255.0) + \
+                         old_frame_area * (1.0 - pic_alpha_channel / 255.0)
+        frame[y_offset: y_offset + pic_h,
+              x_offset: x_offset + pic_w,
+              channel] = new_frame_area
