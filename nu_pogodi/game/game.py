@@ -26,9 +26,15 @@ class EggHill(object):
         self.positions[-1] = self.PositionStatus.EMPTY
 
     def egg_on_position(self, position):
+        """
+        Находится и яйцо на данной позиции?
+        """
         return self.positions[position] == self.PositionStatus.EGG
 
     def add_egg(self):
+        """
+        Добавить яйцо в начало горки
+        """
         if self.egg_on_position(0):
             raise EggIsAlreadyAdded
         self.positions[0] = self.PositionStatus.EGG
@@ -97,12 +103,13 @@ class Game(object):
         self._initial_frame_size = first_frame.shape[:2]
         self._player.initialize(first_frame)
 
-    def show(self, img):
-        game_frame = self._get_game_frame(img)
+    def show(self, camera_frame):
+        game_frame = self._get_game_frame(camera_frame)
 
         self._update_state()
-        self._player.update(img)
+        self._player.update(camera_frame)
 
+        # Для каждой горки проверяем, что поймано ли падающее яйцо или нет?
         for hill_key, hill in self.egg_hills.iteritems():
             if hill.egg_on_position(-1):
                 if self._does_player_can_catch_egg(
@@ -159,25 +166,37 @@ class Game(object):
                 except EggIsAlreadyAdded:
                     pass
 
-    def _get_game_frame(self, img):
+    def _get_game_frame(self, camera_frame):
         x, y = self.PLAYER_AREA_START_POSITION
         h, w = self.PLAYER_AREA_SIZE
         game_frame = self._bg.copy()
-        game_frame[x: x + h, y: y + w] = cv2.resize(img, (w, h))
+        # всталяем изоражение с камеры в середину поля
+        game_frame[x: x + h, y: y + w] = cv2.resize(camera_frame, (w, h))
         return game_frame
 
     def _show_eggs(self, game_frame):
+        """
+        Отображаем все яйца на поле
+        """
         for hill_key in self.egg_hills:
             self._show_hill_eggs(
                 game_frame, self.egg_hills[hill_key],
                 self.EGG_POSITIONS[hill_key])
 
-    def _show_hill_eggs(self, img, hill, show_positions):
+    def _show_hill_eggs(self, game_frame, hill, show_positions):
+        """
+        Отображаем все яйца одной горки
+        """
         for pos, position_point in enumerate(show_positions):
             if hill.egg_on_position(pos):
-                cv2.circle(img, position_point, 12, self.EGG_COLOR, 4)
+                cv2.circle(game_frame, position_point, 12, self.EGG_COLOR, 4)
 
     def _get_hand_position(self, hand_position):
+        """
+        Получение позиции руки игрока на игровом поле (так как мы изменяем
+        размер изображения с видео + вставляем его посреди поля, то координаты
+        рук игрока нужно отмасштабировать и сместить)
+        """
         return (
             hand_position[0] * self.PLAYER_AREA_SIZE[0] /
                     self._initial_frame_size[0] +

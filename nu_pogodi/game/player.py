@@ -1,3 +1,4 @@
+# coding=utf-8
 import cv2
 
 from nu_pogodi import utils
@@ -23,6 +24,7 @@ class BaseHand(object):
             self.position = new_position
 
     def _find_new_position_candidate(self, mv_channel):
+        # Получаем все выпуклые оболочки на изображении
         hulls = []
         for cnt in utils.iter_outer_contours(self._get_search_area(mv_channel)):
             hull = cv2.convexHull(cnt)
@@ -31,17 +33,21 @@ class BaseHand(object):
             hulls.append(hull)
 
         if hulls:
-            return self._get_position(hulls)
+            return self._get_position_candidate_by_hulls(hulls)
 
     def _get_search_area(self, mv_channel):
+        """
+        Получение области, в которой нужно искать позицию руки
+        """
         raise NotImplemented
 
-    def _get_position(self, hulls):
+    def _get_position_candidate_by_hulls(self, hulls):
         raise NotImplemented
 
 
 class RightHand(BaseHand):
-    def _get_position(self, hulls):
+    def _get_position_candidate_by_hulls(self, hulls):
+        # ищем крайнюю правую точку крайней правой оболочки
         position, _ = max(((get_most_right_point(h), h) for h in hulls),
                           key=lambda x: x[0][0])
         return position
@@ -53,12 +59,15 @@ class RightHand(BaseHand):
         new_position = \
             super(RightHand, self)._find_new_position_candidate(mv_channel)
         if new_position:
+            # так как позицию искали в правой чсти экрана, то найденную позицию
+            # нужно сдвинуть вправо
             return (new_position[0] + mv_channel.shape[1] / 2,
                     new_position[1])
 
 
 class LeftHand(BaseHand):
-    def _get_position(self, hulls):
+    def _get_position_candidate_by_hulls(self, hulls):
+        # ищем крайнюю левую точку крайней левой оболочки
         position, _ = min(((get_most_left_point(h), h) for h in hulls),
                           key=lambda x: x[0][0])
         return position
@@ -71,8 +80,8 @@ class Player(object):
     def __init__(self):
         self.left_hand = LeftHand()
         self.right_hand = RightHand()
-        self._vertical_center = None
 
+        self._horizontal_middle = None
         self._prev_gray = None
 
     def _get_gray_frame(self, frame):
@@ -94,8 +103,3 @@ class Player(object):
 
         self.left_hand.update(mv_channel)
         self.right_hand.update(mv_channel)
-
-    def can_catch(self, position):
-        return any(utils.get_points_distance(h, position) < 20
-                   for h in (self.left_hand.position,
-                             self.right_hand.position))
