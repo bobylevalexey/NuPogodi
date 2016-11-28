@@ -75,6 +75,7 @@ class Game(object):
 
     def __init__(self):
         self._bg = read_image('field.jpg')
+        self._basket_img = read_image('basket.png')
         self._last_hill_update = 0
         self.egg_hills = {
             k: EggHill()
@@ -103,7 +104,6 @@ class Game(object):
                         self.EGG_POSITIONS[hill_key][-1]):
                     hill.rm_last()
                     self._player_score += 1
-                    print self._player_score
 
         self._show_eggs(game_frame)
         self._show_player_hands(game_frame)
@@ -124,10 +124,9 @@ class Game(object):
     def _does_player_can_catch_egg(self, egg_position):
         return any(
             utils.get_points_distance(
-                self._get_hand_position(hand.position), egg_position) < 20
+                self._get_hand_position(hand.position), egg_position) < 40
             for hand in [self._player.right_hand, self._player.left_hand]
         )
-
 
     def _update_state(self):
         cur_time = time.time()
@@ -176,13 +175,13 @@ class Game(object):
         )
 
     def _show_player_hands(self, game_frame):
-        if self._player.left_hand.position is not None:
-            cv2.circle(
-                game_frame, self._get_hand_position(
-                    self._player.left_hand.position),
-                5, (255, 0, 0), 3)
-        if self._player.right_hand.position is not None:
-            cv2.circle(
-                game_frame, self._get_hand_position(
-                    self._player.right_hand.position),
-                5, (0, 255, 0), 3)
+        for hand in [self._player.left_hand,
+                     self._player.right_hand]:
+            if hand.position is not None:
+                hand_position = self._get_hand_position(hand.position)
+                basket_position = (
+                    hand_position[0] - self._basket_img.shape[1] / 2,
+                    hand_position[1] - int(self._basket_img.shape[0] / 2),
+                )
+                utils.insert_picture(
+                    game_frame, self._basket_img, basket_position)
