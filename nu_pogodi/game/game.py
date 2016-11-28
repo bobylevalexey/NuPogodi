@@ -82,11 +82,16 @@ class Game(object):
             for k in ['left_upper', 'left_lower',
                       'right_upper', 'right_lower']
         }
-        self._egg_speed = 1
         self._player = Player()
+
         self._player_score = 0
+        self._player_record = 0
 
         self._initial_frame_size = None
+
+    @property
+    def _egg_speed(self):
+        return 0.95 ** self._player_score
 
     def initialize(self, first_frame):
         self._initial_frame_size = first_frame.shape[:2]
@@ -104,6 +109,7 @@ class Game(object):
                         self.EGG_POSITIONS[hill_key][-1]):
                     hill.rm_last()
                     self._player_score += 1
+        self._player_record = max(self._player_score, self._player_record)
 
         self._show_eggs(game_frame)
         self._show_player_hands(game_frame)
@@ -114,8 +120,15 @@ class Game(object):
     def _show_score(self, game_frame):
         font = cv2.FONT_HERSHEY_SIMPLEX
         cv2.putText(game_frame,
-                    str(self._player_score),
-                    (550, 150),
+                    'Score: ' + str(self._player_score),
+                    (490, 150),
+                    font,
+                    fontScale=1.5,
+                    color=(0, 0, 0),
+                    thickness=4)
+        cv2.putText(game_frame,
+                    'Record: ' + str(self._player_record),
+                    (490, 190),
                     font,
                     fontScale=1.5,
                     color=(0, 0, 0),
@@ -135,7 +148,7 @@ class Game(object):
             for hill in self.egg_hills.values():
                 hill.update()
                 if hill.last_egg_was_lost:
-                    self._player_score = max(0, self._player_score - 1)
+                    self._player_score = max(0, self._player_score - 2)
 
             hills = self.egg_hills.values()
             random.shuffle(hills)
