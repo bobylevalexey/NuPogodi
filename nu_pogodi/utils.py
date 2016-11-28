@@ -59,19 +59,6 @@ def iter_outer_contours(channel, min_area=None):
             yield cnt
 
 
-def show_rectangle(image, channel, min_area=1000):
-    for cnt in iter_outer_contours(channel, min_area):
-        x, y, w, h = cv2.boundingRect(cnt)
-        cv2.rectangle(image, (x, y), (x + w, y + h), (128, 255, 255))
-    return image
-
-
-def show_contour_in_rectangle(image, contour, color=(0, 255, 0)):
-    x, y, w, h = cv2.boundingRect(contour)
-    cv2.rectangle(image, (x, y), (x + w, y + h), color)
-    return image
-
-
 def get_moves_channel(flow, mv_param=1):
     fx, fy = flow[:,:,0], flow[:,:,1]
     moves = np.sqrt(fx*fx+fy*fy).astype(np.uint8)
