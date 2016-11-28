@@ -37,6 +37,9 @@ class EggHill(object):
 
 
 class Game(object):
+    PLAYER_AREA_START_POSITION = 280, 260
+    PLAYER_AREA_SIZE = 300, 414
+
     EGG_COLOR = (70, 70, 70)
 
     class GetPositionsFunc:
@@ -79,11 +82,17 @@ class Game(object):
         self._player = Player()
         self._player_score = 0
 
+        self._initial_frame_size = None
+
+    def initialize(self, first_frame):
+        self._initial_frame_size = first_frame.shape[:2]
+        self._player.initialize(first_frame)
+
     def show(self, img):
         game_frame = self._get_game_frame(img)
 
         self._update_state()
-        self._player.update(game_frame)
+        self._player.update(img)
 
         for hill_key, hill in self.egg_hills.iteritems():
             if hill.egg_on_position(-1):
@@ -114,8 +123,8 @@ class Game(object):
                     pass
 
     def _get_game_frame(self, img):
-        x, y = 280, 260
-        h, w = 300, 415
+        x, y = self.PLAYER_AREA_START_POSITION
+        h, w = self.PLAYER_AREA_SIZE
         game_frame = self._bg.copy()
         game_frame[x: x + h, y: y + w] = cv2.resize(img, (w, h))
         return game_frame
@@ -131,13 +140,24 @@ class Game(object):
             if hill.egg_on_position(pos):
                 cv2.circle(img, position_point, 12, self.EGG_COLOR, 4)
 
+    def _get_hand_position(self, hand_position):
+        return (
+            hand_position[0] * self.PLAYER_AREA_SIZE[0] /
+                    self._initial_frame_size[0] +
+                self.PLAYER_AREA_START_POSITION[0],
+            hand_position[1] * self.PLAYER_AREA_SIZE[1] /
+                    self._initial_frame_size[1] +
+                self.PLAYER_AREA_START_POSITION[1],
+        )
 
     def _show_player_hands(self, game_frame):
-        if self._player.left_hand_position is not None:
+        if self._player.left_hand.position is not None:
             cv2.circle(
-                game_frame, self._player.left_hand_position,
+                game_frame, self._get_hand_position(
+                    self._player.left_hand.position),
                 5, (255, 0, 0), 3)
-        if self._player.right_hand_position is not None:
+        if self._player.right_hand.position is not None:
             cv2.circle(
-                game_frame, self._player.right_hand_position,
+                game_frame, self._get_hand_position(
+                    self._player.right_hand.position),
                 5, (0, 255, 0), 3)

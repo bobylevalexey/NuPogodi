@@ -6,18 +6,11 @@ import numpy as np
 import operator
 
 
-def show_video(prepare_image_func, mirror=True):
+def iter_cam_frames():
     cap = cv2.VideoCapture(0)
-
     while True:
         _, frame = cap.read()
-        if mirror:
-            frame = cv2.flip(frame, 1)
-
-        cv2.imshow('Video', prepare_image_func(frame))
-
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
+        yield cv2.flip(frame, 1)
 
     cap.release()
     cv2.destroyAllWindows()
