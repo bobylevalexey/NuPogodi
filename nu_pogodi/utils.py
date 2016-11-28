@@ -3,7 +3,6 @@ import cv2
 import math
 import numpy
 import numpy as np
-import operator
 
 
 def iter_cam_frames():
@@ -67,44 +66,9 @@ def show_rectangle(image, channel, min_area=1000):
     return image
 
 
-def find_left_point(contour):
-    return max(contour, key=get_point_y)
-
-
 def show_contour_in_rectangle(image, contour, color=(0, 255, 0)):
     x, y, w, h = cv2.boundingRect(contour)
     cv2.rectangle(image, (x, y), (x + w, y + h), color)
-    return image
-
-
-def get_point_y(point):
-    return point[0][0]
-
-
-def show_point(image, point, color, ):
-    cv2.circle(image, (point[0][0], point[0][1]), 5, color, 5)
-    return image
-
-
-def show_most_left_contour(image, contours, color=(255, 0, 0)):
-    if contours:
-        most_left_contour, left_point = max(
-            ((c, max(c, key=get_point_y)) for c in contours),
-            key=lambda x: get_point_y(x[1])
-        )
-        show_point(image, left_point, color)
-        show_contour_in_rectangle(image, most_left_contour, color)
-    return image
-
-
-def show_most_right_contour(image, contours, color=(0, 0, 255)):
-    if contours:
-        most_right_contour, right_point = min(
-            ((c, min(c, key=get_point_y)) for c in contours),
-            key=lambda x: get_point_y(x[1])
-        )
-        show_point(image, right_point, color)
-        show_contour_in_rectangle(image, most_right_contour, color)
     return image
 
 
@@ -113,14 +77,6 @@ def get_moves_channel(flow, mv_param=1):
     moves = np.sqrt(fx*fx+fy*fy).astype(np.uint8)
     fr = threshold_frame(moves, param=mv_param)
     return fr
-
-
-def threshold_frame(frame, param=127):
-    """
-    пиксели меньшие param устанавливает нулями. в остальные устанвливает 255
-    """
-    ret, thresh = cv2.threshold(frame,param,255,cv2.THRESH_BINARY)
-    return thresh
 
 
 def get_points_distance(p1, p2):
